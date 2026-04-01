@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="es">
+    <head>
+        <meta charset="UTF-8">
+        <title>Editar Nota</title>
+        <style>
+            body {
+                font-family: Arial, sans-serif;
+                max-width: 600px;
+                margin: 40px auto;
+                padding: 0 20px;
+            }
+            input, textarea {
+                width: 100%;
+                padding: 8px;
+                margin: 6px 0;
+                box-sizing: border-box;
+            }
+            button {
+                padding: 8px 16px;
+                cursor: pointer;
+                margin-right: 8px;
+            }
+            .save-btn {
+                background: #aaa;
+                color: black;
+                border: none;
+                border-radius: 4px;
+            }
+            .cancel-btn {
+                background: #cfcf;
+                color: black;
+                border: none;
+                border-radius: 4px;
+                text-decoration: none;
+                display: inline-block;
+                padding: 8px 16px;
+            }
+        </style>
+    </head>
+    <body>
+        <h1>Editar Nota</h1>
+        <form action="/web/notes/{{.ID}}/edit" method="POST">
+            <input
+            type="text"
+            name="title"
+            value="{{.Title}}"
+            required
+            >
+            <textarea
+            name="content"
+            rows="6"
+            required
+            >{{.Content}}</textarea>
+            <button class="save-btn" type="submit">Guardar</button>
+            <a class="cancel-btn" href="/web">Cancelar</a>
+        </form>
+    </body>
+</html>
