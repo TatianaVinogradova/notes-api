@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+	"os"
 	"strings"
 
 	"notes-api/internal/handler"
@@ -13,13 +14,25 @@ import (
 )
 
 func main() {
-	db, err := repository.Connect()
-	if err != nil {
-		log.Fatal(err)
-	}
-	defer db.Close(context.TODO())
+	var repo repository.NoteRepository
 
-	repo := repository.NewPostgresRepository(db)
+	storage := os.Getenv("STORAGE")
+	fmt.Println("Storage:", storage)
+
+	switch storage {
+	case "file":
+		os.MkdirAll("data", 0755)
+		repo = repository.NewFileRepository("data/notes.dat", "data/notes.idx")
+		fmt.Println("Usando FileRepository")
+	default:
+		db, err := repository.Connect()
+		if err != nil {
+			log.Fatal(err)
+		}
+		defer db.Close(context.TODO())
+		repo = repository.NewPostgresRepository(db)
+		fmt.Println("Usando PostgresRepository")
+	}
 	svc := service.NewNoteService(repo)
 
 	webHandler, err := handler.NewWebHandler(svc)
