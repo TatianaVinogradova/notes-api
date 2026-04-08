@@ -1,10 +1,12 @@
 package handler
 
 import (
+	"fmt"
 	"html/template"
 	"net/http"
 	"notes-api/internal/service"
 	"path/filepath"
+	"runtime"
 	"strconv"
 	"strings"
 )
@@ -15,12 +17,20 @@ type WebHandler struct {
 	editTmpl  *template.Template
 }
 
+func getTemplatesDir() string {
+	_, filename, _, _ := runtime.Caller(0)
+	return filepath.Join(filepath.Dir(filename), "..", "..", "templates")
+}
+
 func NewWebHandler(service *service.NoteService) (*WebHandler, error) {
-	indexTmpl, err := template.ParseFiles(filepath.Join("templates", "index.html"))
+	dir := getTemplatesDir()
+
+	indexTmpl, err := template.ParseFiles(filepath.Join(dir, "index.html"))
 	if err != nil {
 		return nil, err
 	}
-	editTmpl, err := template.ParseFiles(filepath.Join("templates", "edit.html"))
+
+	editTmpl, err := template.ParseFiles(filepath.Join(dir, "edit.html"))
 	if err != nil {
 		return nil, err
 	}
@@ -30,6 +40,14 @@ func NewWebHandler(service *service.NoteService) (*WebHandler, error) {
 		indexTmpl: indexTmpl,
 		editTmpl:  editTmpl,
 	}, nil
+}
+
+func getIDFromURL(path string) (int, error) {
+	parts := strings.Split(path, "/")
+	if len(parts) < 4 {
+		return 0, fmt.Errorf("url inválida")
+	}
+	return strconv.Atoi(parts[3])
 }
 
 func (h *WebHandler) Index(w http.ResponseWriter, r *http.Request) {
@@ -56,7 +74,9 @@ func (h *WebHandler) Index(w http.ResponseWriter, r *http.Request) {
 		Notes: notes,
 		Query: query,
 	}
-	h.indexTmpl.Execute(w, data)
+	if err := h.indexTmpl.Execute(w, data); err != nil {
+		http.Error(w, "error renderizado template", http.StatusInternalServerError)
+	}
 }
 
 func (h *WebHandler) Create(w http.ResponseWriter, r *http.Request) {
@@ -72,11 +92,7 @@ func (h *WebHandler) Create(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *WebHandler) Edit(w http.ResponseWriter, r *http.Request) {
-
-	parts := strings.Split(r.URL.Path, "/")
-
-	var id int
-	id, err := strconv.Atoi(parts[3])
+	id, err := getIDFromURL(r.URL.Path)
 	if err != nil {
 		http.Error(w, "id inválido", http.StatusBadRequest)
 		return
@@ -87,15 +103,13 @@ func (h *WebHandler) Edit(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "nota no encontrada", http.StatusNotFound)
 		return
 	}
-	h.editTmpl.Execute(w, note)
+	if err := h.editTmpl.Execute(w, note); err != nil {
+		http.Error(w, "error renderizando template", http.StatusInternalServerError)
+	}
 }
 
 func (h *WebHandler) Update(w http.ResponseWriter, r *http.Request) {
-
-	parts := strings.Split(r.URL.Path, "/")
-
-	var id int
-	id, err := strconv.Atoi(parts[3])
+	id, err := getIDFromURL(r.URL.Path)
 	if err != nil {
 		http.Error(w, "id inválido", http.StatusBadRequest)
 		return
@@ -113,9 +127,7 @@ func (h *WebHandler) Update(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *WebHandler) Delete(w http.ResponseWriter, r *http.Request) {
-	parts := strings.Split(r.URL.Path, "/")
-	var id int
-	id, err := strconv.Atoi(parts[3])
+	id, err := getIDFromURL(r.URL.Path)
 	if err != nil {
 		http.Error(w, "id inválido", http.StatusBadRequest)
 		return

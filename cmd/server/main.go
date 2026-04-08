@@ -19,7 +19,7 @@ func main() {
 	}
 	defer db.Close(context.TODO())
 
-	repo := repository.NewNoteRepository(db)
+	repo := repository.NewPostgresRepository(db)
 	svc := service.NewNoteService(repo)
 
 	webHandler, err := handler.NewWebHandler(svc)

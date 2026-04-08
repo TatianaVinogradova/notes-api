@@ -8,15 +8,24 @@ import (
 	"github.com/jackc/pgx/v5"
 )
 
-type NoteRepository struct {
+type NoteRepository interface {
+	GetAll(ctx context.Context) ([]models.Note, error)
+	GetByID(ctx context.Context, id int) (*models.Note, error)
+	Create(ctx context.Context, title, content string) (*models.Note, error)
+	Update(ctx context.Context, id int, title, content string) (*models.Note, error)
+	Delete(ctx context.Context, id int) error
+	Search(ctx context.Context, query string) ([]models.Note, error)
+}
+
+type PostgresRepository struct {
 	db *pgx.Conn
 }
 
-func NewNoteRepository(db *pgx.Conn) *NoteRepository {
-	return &NoteRepository{db: db}
+func NewPostgresRepository(db *pgx.Conn) *PostgresRepository {
+	return &PostgresRepository{db: db}
 }
 
-func (r *NoteRepository) GetAll(ctx context.Context) ([]models.Note, error) {
+func (r *PostgresRepository) GetAll(ctx context.Context) ([]models.Note, error) {
 	rows, err := r.db.Query(ctx, "SELECT id, title, content, created_at, updated_at FROM notes")
 	if err != nil {
 		return nil, err
@@ -35,7 +44,7 @@ func (r *NoteRepository) GetAll(ctx context.Context) ([]models.Note, error) {
 	return notes, nil
 }
 
-func (r *NoteRepository) GetByID(ctx context.Context, id int) (*models.Note, error) {
+func (r *PostgresRepository) GetByID(ctx context.Context, id int) (*models.Note, error) {
 	var n models.Note
 	err := r.db.QueryRow(ctx,
 		"SELECT id, title, content, created_at, updated_at FROM notes WHERE id = $1", id,
@@ -46,7 +55,7 @@ func (r *NoteRepository) GetByID(ctx context.Context, id int) (*models.Note, err
 	return &n, nil
 }
 
-func (r *NoteRepository) Create(ctx context.Context, title, content string) (*models.Note, error) {
+func (r *PostgresRepository) Create(ctx context.Context, title, content string) (*models.Note, error) {
 	var n models.Note
 	err := r.db.QueryRow(ctx,
 		"INSERT INTO notes (title, content) VALUES ($1, $2) RETURNING id, title, content, created_at, updated_at",
@@ -58,7 +67,7 @@ func (r *NoteRepository) Create(ctx context.Context, title, content string) (*mo
 	return &n, nil
 }
 
-func (r *NoteRepository) Update(ctx context.Context, id int, title, content string) (*models.Note, error) {
+func (r *PostgresRepository) Update(ctx context.Context, id int, title, content string) (*models.Note, error) {
 	var n models.Note
 	err := r.db.QueryRow(ctx,
 		"UPDATE notes SET title=$1, content=$2, updated_at=NOW() WHERE id=$3 RETURNING id, title, content, created_at, updated_at",
@@ -70,15 +79,16 @@ func (r *NoteRepository) Update(ctx context.Context, id int, title, content stri
 	return &n, nil
 }
 
-func (r *NoteRepository) Delete(ctx context.Context, id int) error {
+func (r *PostgresRepository) Delete(ctx context.Context, id int) error {
 	_, err := r.db.Exec(ctx, "DELETE FROM notes WHERE id = $1", id)
 	return err
 }
 
-func (r *NoteRepository) Search(ctx context.Context, query string) ([]models.Note, error) {
+func (r *PostgresRepository) Search(ctx context.Context, query string) ([]models.Note, error) {
+	searchPattern := "%" + query + "%"
 	rows, err := r.db.Query(ctx,
 		"SELECT id, title, content, created_at, updated_at FROM notes WHERE title ILIKE $1",
-		"%"+query+"%",
+		searchPattern,
 	)
 	if err != nil {
 		return nil, err

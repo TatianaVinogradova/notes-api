@@ -8,11 +8,11 @@ import (
 )
 
 type NoteService struct {
-	repo *repository.NoteRepository
+	repo repository.NoteRepository
 }
 
 func NewNoteService(repo *repository.NoteRepository) *NoteService {
-	return &NoteService{repo: repo}
+	return &NoteService{repo: *repo}
 }
 
 func (s *NoteService) GetAll(ctx context.Context) ([]models.Note, error) {
