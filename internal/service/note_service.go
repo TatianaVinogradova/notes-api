@@ -11,8 +11,8 @@ type NoteService struct {
 	repo repository.NoteRepository
 }
 
-func NewNoteService(repo *repository.NoteRepository) *NoteService {
-	return &NoteService{repo: *repo}
+func NewNoteService(repo repository.NoteRepository) *NoteService {
+	return &NoteService{repo: repo}
 }
 
 func (s *NoteService) GetAll(ctx context.Context) ([]models.Note, error) {
